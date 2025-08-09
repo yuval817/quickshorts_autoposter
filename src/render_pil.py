@@ -1,7 +1,7 @@
 import os
 from moviepy.editor import (
     ImageClip, CompositeVideoClip, ColorClip, concatenate_videoclips,
-    VideoFileClip, vfx
+    VideoFileClip, vfx, AudioFileClip
 )
 import numpy as np
 from PIL import Image, ImageDraw, ImageFont
@@ -47,9 +47,7 @@ def make_text_image(script: str, brand: str):
     return np.array(img)
 
 def make_background(topic: str | None):
-    """
-    Try to fetch football b-roll via Pexels; fall back to an animated gradient.
-    """
+    """Fetch football b-roll via Pexels; fall back to animated gradient."""
     try:
         from broll import fetch_broll
         if topic:
@@ -57,7 +55,7 @@ def make_background(topic: str | None):
             if path and os.path.exists(path):
                 clip = VideoFileClip(path).without_audio()
 
-                # Fit to 9:16 (1080x1920) with a smart center crop
+                # Fit to 9:16 (1080x1920) with center crop
                 scale = H / clip.h
                 resized = clip.resize(scale)
                 if resized.w >= W:
@@ -66,20 +64,43 @@ def make_background(topic: str | None):
                 else:
                     bg = resized.resize(width=W).crop(y1=0, y2=H)
 
-                # Trim to duration + slight color boost for punch
+                # Trim and boost a touch
                 bg = bg.subclip(0, min(DURATION, bg.duration)).fx(vfx.colorx, 1.06)
                 return bg
     except Exception:
         pass
-
     return gradient_bg()
 
 def render_video(script: str, brand_name: str = "QuickShorts",
-                 outfile: str = "out.mp4", topic: str | None = None):
+                 outfile: str = "out.mp4", topic: str | None = None,
+                 voice_path: str | None = None):
     bg = make_background(topic)
     overlay_np = make_text_image(script, brand_name)
-    overlay = ImageClip(overlay_np).set_duration(bg.duration).set_opacity(0.98)
-    final = CompositeVideoClip([bg, overlay], size=(W,H))
-    final.write_videofile(outfile, fps=30, codec="libx264", audio=False,
-                          preset="medium", threads=2)
+    overlay = ImageClip(overlay_np)
+
+    # Decide final duration
+    dur = min(DURATION, bg.duration)
+    narration = None
+    if voice_path and os.path.exists(voice_path):
+        try:
+            narration = AudioFileClip(voice_path)
+            dur = min(dur, narration.duration)
+        except Exception:
+            narration = None
+
+    overlay = overlay.set_duration(dur).set_opacity(0.98)
+    bg = bg.subclip(0, dur)
+
+    final = CompositeVideoClip([bg, overlay], size=(W, H))
+    if narration:
+        final = final.set_audio(narration.set_duration(dur))
+
+    final.write_videofile(
+        outfile,
+        fps=30,
+        codec="libx264",
+        audio_codec="aac",
+        preset="medium",
+        threads=2
+    )
     return outfile
