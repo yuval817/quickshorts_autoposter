@@ -29,7 +29,7 @@ jobs:
           python -m pip install --upgrade pip
           pip install -r requirements.txt
 
-      - name: Run autoposter
+           - name: Run autoposter
         env:
           YT_CLIENT_ID: ${{ secrets.YT_CLIENT_ID }}
           YT_CLIENT_SECRET: ${{ secrets.YT_CLIENT_SECRET }}
@@ -37,5 +37,7 @@ jobs:
           OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
           BRAND_NAME: ${{ secrets.BRAND_NAME }}
           YT_UPLOAD_PRIVACY: ${{ secrets.YT_UPLOAD_PRIVACY }}
+          PEXELS_API_KEY: ${{ secrets.PEXELS_API_KEY }}     # <-- add
+          VIDEO_TOPIC: ${{ secrets.VIDEO_TOPIC }}           # <-- add
         run: |
           python -u src/main.py
