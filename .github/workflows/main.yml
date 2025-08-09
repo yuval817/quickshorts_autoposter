@@ -3,7 +3,7 @@ name: Publish QuickShorts
 on:
   workflow_dispatch: {}
   push:
-    branches: [main]
+    branches: [main]         # temporary so a commit triggers the run
   schedule:
     - cron: "0 7,11,15 * * *"
 
@@ -12,6 +12,7 @@ jobs:
     runs-on: ubuntu-latest
     permissions:
       contents: read
+
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -31,7 +32,7 @@ jobs:
           python -m pip install --upgrade pip
           pip install -r requirements.txt
 
-           - name: Run autoposter
+      - name: Run autoposter
         env:
           YT_CLIENT_ID: ${{ secrets.YT_CLIENT_ID }}
           YT_CLIENT_SECRET: ${{ secrets.YT_CLIENT_SECRET }}
@@ -39,7 +40,8 @@ jobs:
           OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
           BRAND_NAME: ${{ secrets.BRAND_NAME }}
           YT_UPLOAD_PRIVACY: ${{ secrets.YT_UPLOAD_PRIVACY }}
-          PEXELS_API_KEY: ${{ secrets.PEXELS_API_KEY }}     # <-- add
-          VIDEO_TOPIC: ${{ secrets.VIDEO_TOPIC }}           # <-- add
+          PEXELS_API_KEY: ${{ secrets.PEXELS_API_KEY }}
+          VIDEO_TOPIC: ${{ secrets.VIDEO_TOPIC }}
+          VOICE_LANG: en
         run: |
           python -u src/main.py
