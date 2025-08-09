@@ -1,5 +1,6 @@
 import os
 import random
+TOPIC = os.getenv("VIDEO_TOPIC", "football; Lamine Yamal, Lionel Messi, Cristiano Ronaldo")
 from datetime import datetime
 from fetch_facts import fetch_today_events
 from script_writer import write_script
@@ -27,7 +28,7 @@ def main():
         title = f"{ev['year']} • {ev['title']} — 20s history bite"
         filename = f"short-{slugify(ev['title'])}.mp4"
         path = os.path.join("/tmp", filename)
-        render_video(script, brand_name=brand, outfile=path)
+       render_video(script, brand_name=brand, outfile=path, topic=TOPIC)
         desc = build_description(ev, brand, script)
         upload_video(path, title, desc, privacy_status=privacy)
 
