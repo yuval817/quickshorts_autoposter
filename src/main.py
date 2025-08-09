@@ -8,7 +8,7 @@ TOPIC = os.getenv("VIDEO_TOPIC", "football; Lamine Yamal, Lionel Messi, Cristian
 VOICE_LANG = os.getenv("VOICE_LANG", "en")
 BRAND = os.getenv("BRAND_NAME", "QuickShorts")
 PRIVACY = os.getenv("YT_UPLOAD_PRIVACY", "public")
-N_VIDEOS = 3  # how many shorts per run
+N_VIDEOS = 1  # how many shorts per run
 
 # ---- Helpers ----
 def slugify(s: str) -> str:
