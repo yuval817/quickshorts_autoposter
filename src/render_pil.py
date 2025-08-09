@@ -1,14 +1,18 @@
-from moviepy.editor import ImageClip, CompositeVideoClip, ColorClip, concatenate_videoclips
+import os
+from moviepy.editor import (
+    ImageClip, CompositeVideoClip, ColorClip, concatenate_videoclips,
+    VideoFileClip, vfx
+)
 import numpy as np
 from PIL import Image, ImageDraw, ImageFont
 import textwrap
 
 W, H = 1080, 1920
-DURATION = 22
+DURATION = 22  # seconds
 
 def gradient_bg(duration=DURATION):
     colors = [(20,20,30), (35,20,60), (20,40,80), (15,15,35)]
-    clips = [ColorClip(size=(W,H), color=c, duration=duration//len(colors) or 1) for c in colors]
+    clips = [ColorClip(size=(W,H), color=c, duration=max(1, duration//len(colors) or 1)) for c in colors]
     return concatenate_videoclips(clips, method="compose")
 
 def make_text_image(script: str, brand: str):
@@ -24,8 +28,7 @@ def make_text_image(script: str, brand: str):
         font = ImageFont.truetype("/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf", 64)
         wm_font = ImageFont.truetype("/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf", 46)
     except Exception:
-        font = ImageFont.load_default()
-        wm_font = ImageFont.load_default()
+        font = ImageFont.load_default(); wm_font = ImageFont.load_default()
 
     img = Image.new("RGBA", (W, H), (0,0,0,0))
     draw = ImageDraw.Draw(img)
@@ -41,13 +44,42 @@ def make_text_image(script: str, brand: str):
     wmx = (W - wmw)//2
     wmy = H - 120
     draw.text((wmx, wmy), brand, font=wm_font, fill=(255,255,255,220))
-
     return np.array(img)
 
-def render_video(script: str, brand_name: str = "QuickShorts", outfile: str = "out.mp4"):
-    bg = gradient_bg()
+def make_background(topic: str | None):
+    """
+    Try to fetch football b-roll via Pexels; fall back to an animated gradient.
+    """
+    try:
+        from broll import fetch_broll
+        if topic:
+            path = fetch_broll(topic, outfile="broll.mp4")
+            if path and os.path.exists(path):
+                clip = VideoFileClip(path).without_audio()
+
+                # Fit to 9:16 (1080x1920) with a smart center crop
+                scale = H / clip.h
+                resized = clip.resize(scale)
+                if resized.w >= W:
+                    x1 = int((resized.w - W) / 2)
+                    bg = resized.crop(x1=x1, y1=0, x2=x1 + W, y2=H)
+                else:
+                    bg = resized.resize(width=W).crop(y1=0, y2=H)
+
+                # Trim to duration + slight color boost for punch
+                bg = bg.subclip(0, min(DURATION, bg.duration)).fx(vfx.colorx, 1.06)
+                return bg
+    except Exception:
+        pass
+
+    return gradient_bg()
+
+def render_video(script: str, brand_name: str = "QuickShorts",
+                 outfile: str = "out.mp4", topic: str | None = None):
+    bg = make_background(topic)
     overlay_np = make_text_image(script, brand_name)
-    overlay = ImageClip(overlay_np).set_duration(bg.duration)
+    overlay = ImageClip(overlay_np).set_duration(bg.duration).set_opacity(0.98)
     final = CompositeVideoClip([bg, overlay], size=(W,H))
-    final.write_videofile(outfile, fps=30, codec="libx264", audio=False, preset="medium", threads=2)
+    final.write_videofile(outfile, fps=30, codec="libx264", audio=False,
+                          preset="medium", threads=2)
     return outfile
