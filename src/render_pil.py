@@ -19,14 +19,10 @@ def _load_font(size):
         return ImageFont.load_default()
 
 def make_line_img(text: str, size: int = 64, wrap: int = 22):
-    """Render ONE line of caption to a transparent RGBA image."""
     font = _load_font(size)
     line = textwrap.fill(text.strip(), width=wrap)
-
     img = Image.new("RGBA", (W, H), (0, 0, 0, 0))
     d = ImageDraw.Draw(img)
-
-    # box
     bbox = d.multiline_textbbox((0, 0), line, font=font, spacing=8, align="center")
     tw, th = bbox[2] - bbox[0], bbox[3] - bbox[1]
     x = (W - tw) // 2
@@ -54,19 +50,21 @@ def make_background(topic: str | None):
     """Try to fetch football b-roll; fall back to animated gradient."""
     try:
         from broll import fetch_broll
-        p = fetch_broll(topic or "football", outfile="broll.mp4")
+        p = fetch_broll(topic or "football", outfile="/tmp/broll.mp4")
         if p and os.path.exists(p):
+            print(f"[BROLL] Using file: {p}")
             clip = VideoFileClip(p).without_audio()
-            scale = H / clip.h
+            # resize to fill (center-crop)
+            scale = max(W / clip.w, H / clip.h)
             resized = clip.resize(scale)
-            if resized.w >= W:
-                x1 = int((resized.w - W) / 2)
-                bg = resized.crop(x1=x1, y1=0, x2=x1 + W, y2=H)
-            else:
-                bg = resized.resize(width=W).crop(y1=0, y2=H)
+            x1 = max(0, int((resized.w - W) / 2))
+            y1 = max(0, int((resized.h - H) / 2))
+            bg = resized.crop(x1=x1, y1=y1, x2=x1 + W, y2=y1 + H)
             return bg.fx(vfx.colorx, 1.06)
-    except Exception:
-        pass
+        else:
+            print("[BROLL] No file returned -> gradient")
+    except Exception as e:
+        print(f"[BROLL] Exception, using gradient: {e}")
     return gradient_bg()
 
 # ---------- main render ----------
@@ -74,7 +72,7 @@ def render_video(script: str, brand_name: str = "QuickShorts",
                  outfile: str = "out.mp4", topic: str | None = None,
                  voice_path: str | None = None):
     bg = make_background(topic)
-    dur = min(DURATION, bg.duration)
+    dur = min(DURATION, getattr(bg, "duration", DURATION))
 
     narration = None
     if voice_path and os.path.exists(voice_path):
@@ -83,12 +81,13 @@ def render_video(script: str, brand_name: str = "QuickShorts",
                          .fx(afx.audio_fadein, 0.25)
                          .fx(afx.audio_fadeout, 0.25))
             dur = min(dur, narration.duration)
-        except Exception:
+        except Exception as e:
+            print(f"[TTS] Could not load narration: {e}")
             narration = None
 
     bg = bg.subclip(0, dur)
 
-    # --- animated captions: show ONE line at a time ---
+    # --- animated captions: one line at a time ---
     lines = [ln.strip() for ln in script.splitlines() if ln.strip()]
     if not lines:
         lines = ["Football fact"]
