@@ -2,15 +2,23 @@ import os, requests
 
 def fetch_broll(topic: str, outfile="broll.mp4"):
     """
-    Download a portrait-ish stock clip from Pexels matching `topic`.
+    Download a portrait-ish stock clip from Pexels.
     Returns path to the saved mp4, or None if nothing found / no API key.
     """
     api = os.getenv("PEXELS_API_KEY")
     if not api:
         return None
 
+    # make a clean, simple query for Pexels
+    base = (topic.split(";")[0] or topic).strip()
+    query = f"{base} soccer football"  # nudge results toward our sport
+
     url = "https://api.pexels.com/videos/search"
-    params = {"query": topic, "per_page": 15}
+    params = {
+        "query": query,
+        "per_page": 20,
+        "orientation": "portrait",   # Pexels may ignore this, we filter below
+    }
     headers = {"Authorization": api}
 
     r = requests.get(url, params=params, headers=headers, timeout=30)
@@ -19,9 +27,19 @@ def fetch_broll(topic: str, outfile="broll.mp4"):
     if not videos:
         return None
 
-    # Prefer tall clips (portrait). Fall back to best available.
-    videos.sort(key=lambda v: (v.get("height", 1) / max(1, v.get("width", 1))), reverse=True)
-    choice = videos[0]
+    # Prefer vertical clips; if none vertical, pick the largest anyway
+    def is_vertical(v):
+        w, h = v.get("width", 0), v.get("height", 0)
+        return h > w
+
+    vertical = [v for v in videos if is_vertical(v)]
+    pool = vertical if vertical else videos
+
+    # Choose biggest resolution
+    def area(v): return (v.get("width", 0) * v.get("height", 0))
+    pool.sort(key=area, reverse=True)
+    choice = pool[0]
+
     files = choice.get("video_files", [])
     if not files:
         return None
