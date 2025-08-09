@@ -3,7 +3,7 @@ import random
 from datetime import datetime
 from fetch_facts import fetch_today_events
 from script_writer import write_script
-from render import render_video
+from render_pil import render_video
 from uploader import upload_video
 
 def slugify(s):
