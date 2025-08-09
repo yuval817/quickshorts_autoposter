@@ -1,42 +1,42 @@
 import os
-import time
 from googleapiclient.discovery import build
 from googleapiclient.http import MediaFileUpload
+from googleapiclient.errors import HttpError
+from googleapiclient.errors import ResumableUploadError
 from google.oauth2.credentials import Credentials
 
-SCOPES = ["https://www.googleapis.com/auth/youtube.upload", "https://www.googleapis.com/auth/youtube.readonly"]
+SCOPES = ["https://www.googleapis.com/auth/youtube.upload"]
 
-def get_creds():
-    client_id = os.environ["YT_CLIENT_ID"]
-    client_secret = os.environ["YT_CLIENT_SECRET"]
-    refresh_token = os.environ["YT_REFRESH_TOKEN"]
-    return Credentials(
-        None,
-        refresh_token=refresh_token,
-        token_uri="https://oauth2.googleapis.com/token",
-        client_id=client_id,
-        client_secret=client_secret,
-        scopes=SCOPES
-    )
+def _yt_client():
+    creds = Credentials.from_authorized_user_info({
+        "client_id": os.getenv("YT_CLIENT_ID"),
+        "client_secret": os.getenv("YT_CLIENT_SECRET"),
+        "refresh_token": os.getenv("YT_REFRESH_TOKEN"),
+        "token_uri": "https://oauth2.googleapis.com/token"
+    }, SCOPES)
+    return build("youtube", "v3", credentials=creds)
 
-def upload_video(filepath, title, description, privacy_status="public"):
-    creds = get_creds()
-    yt = build("youtube", "v3", credentials=creds)
+def upload_video(path, title, description, privacy_status="public"):
+    youtube = _yt_client()
     body = {
-        "snippet": {
-            "title": title,
-            "description": description,
-            "categoryId": "27"  # Education
-        },
-        "status": {"privacyStatus": privacy_status},
+        "snippet": {"title": title, "description": description, "categoryId": "22"},
+        "status": {"privacyStatus": privacy_status}
     }
-    media = MediaFileUpload(filepath, chunksize=-1, resumable=True)
-    request = yt.videos().insert(part="snippet,status", body=body, media_body=media)
-    response = None
-    while response is None:
-        status, response = request.next_chunk()
-        if status:
-            print(f"Uploaded {int(status.progress()*100)}%")
-    video_id = response.get("id")
-    print("Video uploaded:", f"https://www.youtube.com/watch?v={video_id}")
-    return video_id
+    media = MediaFileUpload(path, chunksize=-1, resumable=True)
+
+    try:
+        req = youtube.videos().insert(part="snippet,status", body=body, media_body=media)
+        resp = None
+        while resp is None:
+            status, resp = req.next_chunk()
+        vid = resp.get("id")
+        print(f"Video uploaded: https://www.youtube.com/watch?v={vid}")
+        return vid
+
+    except (ResumableUploadError, HttpError) as e:
+        msg = str(e)
+        if "uploadLimitExceeded" in msg:
+            print("YouTube daily upload limit reached — video rendered but not uploaded.")
+            print(f"Rendered file path: {path}")
+            return None
+        raise
