@@ -12,7 +12,6 @@ def gradient_bg(duration=DURATION):
     return concatenate_videoclips(clips, method="compose")
 
 def make_text_image(script: str, brand: str):
-    # wrap text
     lines = []
     for raw in script.splitlines():
         raw = raw.strip()
@@ -21,7 +20,6 @@ def make_text_image(script: str, brand: str):
         lines.append(textwrap.fill(raw, width=22))
     caption = "\n\n".join(lines)
 
-    # fonts available on GitHub runners
     try:
         font = ImageFont.truetype("/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf", 64)
         wm_font = ImageFont.truetype("/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf", 46)
