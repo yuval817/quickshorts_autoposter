@@ -31,12 +31,12 @@ def render_video(script:str, brand_name:str="QuickShorts", outfile:str="out.mp4"
     bg = gradient_bg()
     caption = make_caption_text(script)
 
-    txt = TextClip(caption, fontsize=70, font="Arial-Bold", size=(W-120,None), method="caption")
+    txt = TextClip(caption, fontsize=70, size=(W-120,None), method="caption")
     txt = txt.set_position(("center","center")).set_duration(bg.duration)
     txt = txt.margin(left=60, right=60, top=60, bottom=60)
 
     # Watermark
-    wm = TextClip(brand_name, fontsize=48, font="Arial-Bold")
+    wm = TextClip(brand_name, fontsize=48)
     wm = wm.set_position(("center", H-120)).set_duration(bg.duration)
 
     final = CompositeVideoClip([bg, txt, wm], size=(W,H))
