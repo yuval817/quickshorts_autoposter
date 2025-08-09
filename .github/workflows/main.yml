@@ -2,10 +2,11 @@ name: Publish QuickShorts
 
 on:
   workflow_dispatch: {}
-  push:
-    branches: [main]         # temporary so a commit triggers the run
+  # If you want it to run on every commit, uncomment the next 2 lines.
+  # push:
+  #   branches: [main]
   schedule:
-    - cron: "0 7,11,15 * * *"
+    - cron: "0 7,11,15 * * *"   # 07:00, 11:00, 15:00 UTC
 
 jobs:
   build-and-publish:
@@ -45,3 +46,11 @@ jobs:
           VOICE_LANG: en
         run: |
           python -u src/main.py
+
+      - name: Upload rendered videos (artifact)
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: renders
+          path: /tmp/*.mp4
+          if-no-files-found: warn
