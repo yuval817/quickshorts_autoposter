@@ -7,13 +7,12 @@ W, H = 1080, 1920
 DURATION = 22
 
 def gradient_bg(duration=DURATION):
-    # simple animated gradient using a few color clips crossfaded together
     colors = [(20,20,30), (35,20,60), (20,40,80), (15,15,35)]
     clips = [ColorClip(size=(W,H), color=c, duration=duration/len(colors)) for c in colors]
     return concatenate_videoclips(clips, method="compose")
 
 def make_text_image(script: str, brand: str):
-    # wrap text nicely
+    # wrap text
     lines = []
     for raw in script.splitlines():
         raw = raw.strip()
@@ -22,7 +21,7 @@ def make_text_image(script: str, brand: str):
         lines.append(textwrap.fill(raw, width=22))
     caption = "\n\n".join(lines)
 
-    # pick a font that exists on GitHub runners
+    # fonts available on GitHub runners
     try:
         font = ImageFont.truetype("/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf", 64)
         wm_font = ImageFont.truetype("/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf", 46)
@@ -33,14 +32,12 @@ def make_text_image(script: str, brand: str):
     img = Image.new("RGBA", (W, H), (0,0,0,0))
     draw = ImageDraw.Draw(img)
 
-    # center caption
     bbox = draw.multiline_textbbox((0,0), caption, font=font, spacing=8, align="center")
     tw, th = bbox[2]-bbox[0], bbox[3]-bbox[1]
     x = (W - tw)//2
-    y = (H - th)//2 - 40  # a little higher than dead center
+    y = (H - th)//2 - 40
     draw.multiline_text((x,y), caption, font=font, fill=(255,255,255,230), align="center", spacing=8)
 
-    # watermark at bottom
     wm_bbox = draw.textbbox((0,0), brand, font=wm_font)
     wmw = wm_bbox[2]-wm_bbox[0]
     wmx = (W - wmw)//2
