@@ -2,7 +2,7 @@ name: Publish QuickShorts
 
 on:
   workflow_dispatch: {}
-  # If you want it to run on every commit, uncomment the next 2 lines.
+  # If you want it to run on every commit, uncomment:
   # push:
   #   branches: [main]
   schedule:
@@ -52,5 +52,5 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: renders
-          path: /tmp/*.mp4
+          path: /tmp/short-*.mp4
           if-no-files-found: warn
