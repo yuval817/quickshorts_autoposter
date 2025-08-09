@@ -1,4 +1,4 @@
-name: Publish QuickShorts 
+name: Publish QuickShorts
 
 on:
   schedule:
