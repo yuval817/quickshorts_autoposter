@@ -8,7 +8,7 @@ DURATION = 22
 
 def gradient_bg(duration=DURATION):
     colors = [(20,20,30), (35,20,60), (20,40,80), (15,15,35)]
-    clips = [ColorClip(size=(W,H), color=c, duration=duration/len(colors)) for c in colors]
+    clips = [ColorClip(size=(W,H), color=c, duration=duration//len(colors) or 1) for c in colors]
     return concatenate_videoclips(clips, method="compose")
 
 def make_text_image(script: str, brand: str):
